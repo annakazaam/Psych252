@@ -185,3 +185,59 @@ either convert to a factor w/in the dataframe, or `x=factor(var)` directly in th
 plotting means and error bars
 -----------------------------
 
+``` {r init package, load data, summarize}
+library(plyr)
+source("Desktop/Stanford/Courses/Psy252\ -\ Stats/summarySE.R")
+
+df <- ToothGrowth
+dfc <- summarySE(df, measurevar = "len", groupvars = c("supp","dose"))
+```
+
+### line graphs
+
+``` {r line graphs}
+#error bars = SE
+ggplot(dfc, aes(x=dose, y=len,color=supp)) + 
+  geom_errorbar(aes(ymin=len-se, ymax=len+se), width=.1) +
+  geom_line() +
+  geom_point()
+
+#fix error bar overlap
+pd <- position_dodge(.1)
+
+ggplot(dfc, aes(x=dose, y=len,color=supp)) + 
+  geom_errorbar(aes(ymin=len-se, ymax=len+se), width=.1, position=pd) +
+  geom_line() +
+  geom_point()
+
+#switch to 95% CI
+ggplot(dfc, aes(x=dose, y=len,color=supp)) + #add group=supp for black error bars
+  geom_errorbar(aes(ymin=len-ci, ymax=len+ci), width=.1, position=pd) + #add color="black" (not in aes())
+  geom_line() +
+  geom_point()
+```
+
+### fancify
+
+``` {r fancify line graph}
+ggplot(dfc, aes(x=dose, y=len, color=supp, group=supp)) +
+  geom_errorbar(aes(ymin=len-se, ymax=len+se), color="black", width=.1, position=pd) +
+  geom_line(position=pd) +
+  geom_point(position=pd, size=3, shape=21, fill="white") +
+  xlab("Dose (mg)") +
+  ylab("Tooth length") +
+  scale_color_hue(name="Supplemental type",
+                  breaks=c("OJ", "VC"),
+                  labels=c("Orange juice","Ascorbic acid"),
+                  l=40) + # lightness 40 -> darker colors (across plot)
+  ggtitle("The Effecto f Vitamin C on\nTooth Growth in Guinea Pigs") +
+  scale_y_continuous(limits=c(0, max(dfc$len + dfc$se)), breaks=0:20*4) +
+  theme_bw() +
+  theme(legend.justification=c(1,0), legend.position=c(1,0))
+```
+
+order of layers matters. draw points on last to be able to fill with white on top of the lines.
+
+### bar graphs
+
+
