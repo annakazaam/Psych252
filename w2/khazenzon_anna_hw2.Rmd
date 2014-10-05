@@ -1,0 +1,109 @@
+Anna Khazenzon, Homework 2, 10/8/14
+=================================
+``` {r load libraries}
+library(ggplot)
+library(scales)
+```
+
+Question 1
+---------------------------------
+Here, we calculate mean, sum of squares, variance, standard deviation, and standard error for a sample (_N_=3).
+
+``` {r calc central tendency and variance measures}
+sample <- c(1, 1, 0)
+
+s_mean <- (sample[1] + sample[2] + sample[3])/(length(sample))
+# s_ss <- 
+# s_var <- 
+# s_sd <-
+# s_se <- 
+  
+
+```
+The equation to calculate the mean \(\mu\) is:
+
+\(\Sigma \)
+
+For our sample, the mean \(\mu\) is `r s_mean`.
+
+The equation to calculate sum of squares \(\\) is:
+
+For our sample, the sum of squares \(\\) is `r s_ss`.
+
+The equation to calculate variance \(\\) is:
+
+For our sample, the variance \(\\) is `r s_var`.
+
+The equation to calculate standard deviation \(\\) is:
+
+For our sample, the standard deviation \(\\) is `r s_sd`.
+
+The equation to calculate standard error \(\\) is:
+
+For our sample, the standard error \(\\) is `r s_se`.
+
+Question 6
+---------------------------------
+``` {r import and recode data}
+memdata <- read.csv('http://web.stanford.edu/class/psych252/_downloads/hw2data.csv',header=T, sep=',')
+
+#Type = exper cond, 1=free, 2=biased, 3=varied
+#pasthap = rating
+#responsible = self-reported feelings of responsibility
+#futurehapp = rating of expected future happiness
+#FTP = future time perspective
+#complain = yes/no for whether participants considered complaining
+
+# TODO recode data into btwn 2-8 categories - use findInterval()
+# look at data ranges to determine how to recode
+sapply(memdata, range)
+# TODO plot histograms? 
+
+# recoding responsibility into Low and High
+memdata$rescat <- findInterval(memdata$Responsible, c(0,10))
+```
+
+#Describe the dataset
+``` {r rel btwn past and future happ by type}
+# run cor
+# plot future against past happ w/in mem groups -- see hw2sols.r
+```
+
+Question 7
+---------------------------------
+# test whether future happiness depends on mem group
+``` {r future hap ~ mem group?}
+#lm()
+#summary()
+#compare to oneway.test() result
+#boxplot to decide whether or not to transform data
+```
+# does future happiness depend on mem group?
+# should you transform data?
+
+Question 9
+---------------------------------
+Next, we wanted to establish whether there was a relationship between _Responsible_ and _Complain_, using _logistic regression_. We predicted tht individuals who felt less responsible for the incident were more likely to complain than those who blamed themselves.
+
+``` {r test responsible and complain rel}
+#glm(,family = binomial) - just use to assess whether effect of each predictor var on dependent categorical var significant -- see shw2sols.r
+Q9_rs_cat <- glm(memdata$complain ~ memdata$rescat, family=binomial)
+
+Q9_rs_cont <- glm(memdata$complain ~ memdata$Responsible, family=binomial)
+```
+
+# explain relationship
+
+Because we predicted that individuals who felt responsible would not complain, and those who did not feel responsible would, we first ran the generalized linear model using the coded Responsible variable rescat. We found a significant negative effect of responsibility on complaining, p<.01. 
+
+To further investigate this relationship, we ran the model using the full continuous variable Responsible, assessing whether as individuals felt incrementally more or less responsible, they became increasingly less or more likely to complain. We found a significant negative effect of responsibility on complaining in this model as well, p<.01. The relationship was even stronger. This may be the case because partitioning responsibility into high and low meant including mid-range values in either group, watering down the effect.
+
+
+Question 10
+---------------------------------
+### Q10 Part i
+
+### Q10 Part ii
+
+Question 12
+---------------------------------

@@ -1,0 +1,187 @@
+ggplot2 practice
+=============================
+based on http://www.cookbook-r.com/Graphs/
+
+bar & line graphs
+-----------------------------
+
+### construct data frame
+``` {r}
+df <- data.frame(time = factor(c("Lunch", "Dinner"), levels = c("Lunch","Dinner")), total_bill = c(14.89, 17.23))
+
+library(ggplot2)
+```
+
+### basic graph
+
+``` {r} 
+ggplot(data=df,aes(x=time,y=total_bill)) + geom_bar(stat="identity")
+```
+
+ggplot instantiates a ggplot object, aes() specifies aesthetics, geom_bar is a **layer**, necessary to plot the object. specifies what to graph. stat = identity means values in the column of the data frame are plotted. stat = bin would bin them.
+
+### fill colors
+
+``` {r} 
+ggplot(data=df,aes(x=time,y=total_bill, fill=time)) + geom_bar(stat="identity")
+# equivalently:
+ggplot(data=df,aes(x=time,y=total_bill)) + geom_bar(aes(fill=time), stat="identity")
+```
+
+fill = the variable you want to color by.
+
+### add outline and remove legend
+``` {r}
+ggplot(data=df,aes(x=time,y=total_bill, fill=time)) + geom_bar(color="black", stat="identity") + guides(fill=FALSE)
+```
+
+geom_bar's color var allows you to set outline color.
+another ggplot attribute is guides, pertaining to legend (which I guess is implemented by default and you only need to specify it to remove.. or alter, presumably)
+
+### fancify 
+
+``` {r}
+ggplot(data=df, aes(x=time, y=total_bill, fill=time)) + 
+  geom_bar(color="black", fille="#DD8888", width=.7, stat="identity") +
+  guides(fill=FALSE) +
+  xlab("Time of day") + ylab("Total bill") + 
+  ggtitle("Average bill for 2 people")
+```
+
+neatly organized by category!
+
+### now exploring binning
+
+``` {r}
+library(reshape2)
+head(tips)
+
+ggplot(data=tips, aes(x=day)) + geom_bar()
+```
+
+stat=bin is the default, so you will get COUNTS of your x vars by default. all you need to specify is what your x axis should be
+
+### line graphs
+
+``` {r}
+ggplot(data=df, aes(x=time, y=total_bill, group=1)) + geom_line()
+#equivalently
+ggplot(data=df, aes(x=time, y=total_bill)) + geom_line(aes(group=1))
+```
+
+group data so ggplot knows how to connect points. group=1 means all points connected. with more variables and lines, grouping usually done by variable. geom_line() used to specify line graph
+
+### add points
+
+``` {r}
+ggplot(data=df, aes(x=time, y=total_bill, group=1)) + geom_line() + geom_point()
+```
+
+all that's need is to add geom_point() attribute!
+
+### fancify
+
+``` {r}
+ggplot(data=df, aes(x=time,y=total_bill, group=1)) +
+  geom_line(color="red", linetype="dotted", size=1.5) +
+  geom_point(color="red", size=4, shape=21, fill="white") +
+  ylim(0, max(df$total_bill)) + 
+  xlab("Time of day") + ylab("Total bill") +
+  ggtitle("Average bill for 2 people")
+```
+
+### multiple variables
+
+``` {r}
+df1 <- data.frame(sex = factor(c("Female","Female","Male","Male")),
+                  time = factor(c("Lunch","Dinner","Lunch","Dinner"), levels=c("Lunch","Dinner")),
+                  total_bill = c(13.53, 16.81, 16.24, 17.42))
+```
+
+### bar graph
+
+``` {r}
+ggplot(data=df1, aes(x=time, y=total_bill, fill=sex)) + geom_bar(stat="identity")
+```
+
+default is stacked
+
+``` {r}
+ggplot(data=df1, aes(x=time, y=total_bill, fill=sex)) + geom_bar(stat="identity", position="dodge", color="black") + scale_fill_manual(values=c("#999999","#E69F00"))
+```
+
+position=position_dodge() (or position="dodge"") dodges overlaps to the side. can specify width and heigh here. 
+
+scale\_fill_manual() allows you to specify values to use as colors (ordered).
+
+### flip fill/axis mapping
+
+``` {r}
+ggplot(data=df1,aes(x=sex,y=total_bill,fill=time)) + geom_bar(stat="identity",position="dodge")
+```
+
+### line graphs
+
+``` {r}
+ggplot(data=df1, aes(x=time, y=total_bill, group=sex, color=sex)) + geom_line() + geom_point()
+
+ggplot(data=df1, aes(x=time, y=total_bill, group=sex, size=sex,shape=sex)) +
+  geom_line() +
+  geom_point(size=3, fill="white") +
+  scale_shape_manual(values=c(22,21)) + 
+  scale_size_manual(values=c(1,2))
+```
+
+can use scale\_blahblahblah_manual to group by a number of attributes -- eg line thickness, point shape, color, probably dash style. easy peasy lemon squeezy
+
+### setting legend titles
+
+` scale_fill_hue(name="title")`
+
+is a way to name legend titles. have to repeat for every scale() you add, so multiple legends are not created.
+
+
+
+
+### graph themes
+
+`theme_bw()` 
+
+adds that theme.
+
+AFTER that line
+
+`theme(legend.position=c(.7, .4))`
+
+positions the legend inside the graph.
+
+I wonder why this goes within theme.. 
+
+
+
+theme_gray
+The signature ggplot2 theme with a grey background and white gridlines, designed to put the data forward yet make comparisons easy.
+
+theme_bw
+The classic dark-on-light ggplot2 theme. May work better for presentations displayed with a projector.
+
+theme_linedraw
+A theme with only black lines of various widths on white backgrounds, reminiscent of a line drawings. Serves a purpose similar to theme_bw. Note that this theme has some very thin lines (<< 1 pt) which some journals may refuse.
+
+theme_light
+A theme similar to theme_linedraw but with light grey lines and axes, to direct more attention towards the data.
+
+theme_minimal
+A minimalistic theme with no background annotations.
+
+theme_classic
+A classic-looking theme, with x and y axis lines and no gridlines.
+
+
+### numeric vals as categorical variables on the x axis
+
+either convert to a factor w/in the dataframe, or `x=factor(var)` directly in the plot
+
+plotting means and error bars
+-----------------------------
+
