@@ -187,7 +187,7 @@ plotting means and error bars
 
 ``` {r init package, load data, summarize}
 library(plyr)
-source("Desktop/Stanford/Courses/Psy252\ -\ Stats/summarySE.R")
+source("Desktop/Stanford/Courses/Psy252\ -\ Stats/helpers.R")
 
 df <- ToothGrowth
 dfc <- summarySE(df, measurevar = "len", groupvars = c("supp","dose"))
@@ -239,5 +239,151 @@ ggplot(dfc, aes(x=dose, y=len, color=supp, group=supp)) +
 order of layers matters. draw points on last to be able to fill with white on top of the lines.
 
 ### bar graphs
+
+need the size var to be a _factor_
+
+``` {r bar graph}
+dfc2 <- dfc
+dfc2$dose <- factor(dfc2$dose)
+
+#SE
+ggplot(dfc2, aes(x=dose, y=len, fill=supp)) +
+  geom_bar(position="dodge", stat="identity") +
+  geom_errorbar(aes(ymin=len-se, ymax=len+se),
+                width=.2,
+                position=position_dodge(.9))
+
+#CI
+ggplot(dfc2, aes(x=dose, y=len, fill=supp)) +
+  geom_bar(position="dodge", stat="identity") +
+  geom_errorbar(aes(ymin=len-ci, ymax=len+ci),
+                width=.2,
+                position=position_dodge(.9))
+```
+
+### within-subjects
+
+tightens error bars. variance treated differently.
+
+###one var
+
+``` {r w/in subj 1 var}
+dfw <- read.table(header=T, text='
+ subject pretest posttest
+       1    59.4     64.5
+       2    46.4     52.4
+       3    46.0     49.7
+       4    49.0     48.7
+       5    32.5     37.4
+       6    45.2     49.5
+       7    60.3     59.9
+       8    54.3     54.1
+       9    45.4     49.6
+      10    38.9     48.5
+ ')
+
+dfw$subject <- factor(dfw$subject)
+
+#reshape2 should be loaded
+
+dfw.long <- melt(dfw, id.vars = "subject", measure.vars = c("pretest", "posttest"), variable.name = "condition")
+
+dfwc <- summarySEwithin(dfw.long, measurevar="value", withinvars="condition", idvar="subject", na.rm=FALSE, conf.interval=.95)
+
+# TODO look into summarySEwithin to see how it calculates CI differently for w/in subj
+# value and value_norm are means (un/normalized)
+
+ggplot(dfwc, aes(x=condition, y=value, group=1)) +
+  geom_line() +
+  geom_errorbar(width=.1, aes(ymin=value-ci, ymax=value+ci)) +
+  geom_point(shape=21, size=3, fill="white") +
+  ylim(40,60)
+```
+
+### what would individual differences in condition look like?
+
+``` {r indiv diffs}
+
+ymax <- max(dfw.long$value)
+ymin <- min(dfw.long$value)
+
+# plots of vals for individuals
+ggplot(dfw.long, aes(x=condition, y=value, color=subject, group=subject)) + geom_line() + geom_point(shape=21, fill="white") + ylim(ymin, ymax)
+
+# normalize data
+dfwNorm.long <- normDataWithin(data=dfw.long, idvar="subject", measurevar="value")
+
+# plot norm'd vals for individuals
+ggplot(dfwNorm.long, aes(x=condition, y=value_norm, color=subject, group=subject)) + geom_line() + geom_point(shape=21, fill="white") + ylim(ymin, ymax)
+```
+
+### differences in error bars -- between-subject and within-subject
+
+``` {r btwn v w/in subj error bars}
+dfwc.between <- summarySE(data=dfw.long, measurevar="value", groupvars="condition", na.rm=FALSE, conf.interval=.95)
+
+# plot both
+ggplot(dfwc.between, aes(x=condition, y=value, group=1)) + 
+  geom_line() +
+  geom_errorbar(width=.1, aes(ymin=value-ci, ymax=value+ci), color="red") +
+  geom_errorbar(width=.1, aes(ymin=value-ci, ymax=value+ci), data=dfwc) +
+  geom_point(shape=21, size=3, fill="white") +
+  ylim(ymin, ymax)
+```
+
+so you can layer error bars! again, order appears to matter.
+
+### two vars
+
+``` {r two var w/in subj}
+data <- read.table(header=T, text='
+ Subject RoundMono SquareMono RoundColor SquareColor
+       1        41         40         41          37
+       2        57         56         56          53
+       3        52         53         53          50
+       4        49         47         47          47
+       5        47         48         48          47
+       6        37         34         35          36
+       7        47         50         47          46
+       8        41         40         38          40
+       9        48         47         49          45
+      10        37         35         36          35
+      11        32         31         31          33
+      12        47         42         42          42
+')
+
+# convert to long form
+data.long <- melt(data=data, id.var="Subject",
+                  measure.vars=c("RoundMono", "SquareMono", "RoundColor", "SquareColor"),
+                  variable.name="Condition")
+names(data.long)[names(data.long)=="value"] <- "Time"
+
+# split cond into shape & colorscheme
+data.long$Shape <-NA
+data.long$Shape[grepl("^Round", data.long$Condition)] <-"Round"
+data.long$Shape[grepl("^Square", data.long$Condition)] <-"Square"
+data.long$Shape <- factor(data.long$Shape)
+
+data.long$ColorScheme <- NA
+data.long$ColorScheme[grepl("Mono$", data.long$Condition)] <- "Monochromatic"
+data.long$ColorScheme[grepl("Color$", data.long$Condition)] <- "Colored"
+data.long$ColorScheme <-factor(data.long$ColorScheme, levels=c("Monochromatic","Colored"))
+
+#clean up -- remove Condition col
+data.long$Condition <- NULL
+
+data.long
+
+datac <- summarySEwithin(data.long, measurevar="Time", withinvars=c("Shape","ColorScheme"), idvar="Subject")
+
+ggplot(datac, aes(x=Shape, y=Time, fill=ColorScheme)) +
+  geom_bar(position=position_dodge(.9), color="black", stat="identity") +
+  geom_errorbar(position=position_dodge(.9), width=.25, aes(ymin=Time-ci, ymax=Time+ci)) + 
+  coord_cartesian(ylim=c(40,46)) +
+  scale_fill_manual(values=c("#CCCCCC", "#FFFFFF")) +
+  scale_y_continuous(breaks=seq(1:100)) +
+  theme_bw() +
+  geom_hline(yintercept=38)
+```
 
 
