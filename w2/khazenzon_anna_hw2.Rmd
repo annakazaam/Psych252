@@ -1,7 +1,7 @@
 Anna Khazenzon, Homework 2, 10/8/14
 =================================
 ``` {r load libraries}
-library(ggplot)
+library(ggplot2)
 library(scales)
 ```
 
@@ -13,73 +13,135 @@ Here, we calculate mean, sum of squares, variance, standard deviation, and stand
 sample <- c(1, 1, 0)
 
 s_mean <- (sample[1] + sample[2] + sample[3])/(length(sample))
-# s_ss <- 
-# s_var <- 
-# s_sd <-
-# s_se <- 
+s_ss <- (sample[1] - s_mean)^2 + (sample[2] - s_mean)^2 + (sample[3] - s_mean)^2
+s_var <- s_ss/(length(sample) - 1)
+s_sd <- sqrt(s_ss/(length(sample) - 1))
+s_se <- s_sd/sqrt(length(sample))
   
 
 ```
-The equation to calculate the mean \(\mu\) is:
+The equation to calculate the sample mean $\bar{x}$ is:
 
-\(\Sigma \)
+$$\bar{x} = \frac{\sum_{i=1}^{n} x_i}{n}$$
 
-For our sample, the mean \(\mu\) is `r s_mean`.
+For our sample, the mean $\bar{x}$ is `r s_mean`.
 
-The equation to calculate sum of squares \(\\) is:
+The equation to calculate sum of squares $SS$ is:
 
-For our sample, the sum of squares \(\\) is `r s_ss`.
+$$SS =  \sum_{i=1}^{n} (x_i - \bar{x})^2$$
 
-The equation to calculate variance \(\\) is:
+For our sample, the sum of squares $SS$ is `r s_ss`.
 
-For our sample, the variance \(\\) is `r s_var`.
+The equation to calculate variance $s^2$ is:
 
-The equation to calculate standard deviation \(\\) is:
+$$s^2 = \frac{SS}{n - 1} $$
 
-For our sample, the standard deviation \(\\) is `r s_sd`.
+For our sample, the variance $s^2$ is `r s_var`.
 
-The equation to calculate standard error \(\\) is:
+The equation to calculate sample standard deviation $s$ is:
 
-For our sample, the standard error \(\\) is `r s_se`.
+$$s = \sqrt{\frac{SS}{n - 1}}$$
+
+For our sample, the standard deviation $s$ is `r s_sd`.
+
+The equation to calculate standard error of $\bar{x}$, $SE_\bar{x}$ is:
+
+$$SE_\bar{x} = \frac{s}{\sqrt{n}}$$
+
+For our sample, the standard error of $\bar{x}$, $SE_\bar{x}$ is `r s_se`.
 
 Question 6
 ---------------------------------
+Within the memory bias experiment dataset, we were interested in whether _Past Happiness_ and _Future Happiness_ were differentially related across _Memory Group_ (free, biased, varied). To explore this, we looked at the correlations and plots of _Past Happiness_ and _Future Happiness_ within each _Memory Group_.
+
 ``` {r import and recode data}
 memdata <- read.csv('http://web.stanford.edu/class/psych252/_downloads/hw2data.csv',header=T, sep=',')
 
 #Type = exper cond, 1=free, 2=biased, 3=varied
-#pasthap = rating
-#responsible = self-reported feelings of responsibility
-#futurehapp = rating of expected future happiness
+#Pasthapp = rating
+#Responsible = self-reported feelings of responsibility
+#Futurehapp = rating of expected future happiness
 #FTP = future time perspective
 #complain = yes/no for whether participants considered complaining
 
-# TODO recode data into btwn 2-8 categories - use findInterval()
-# look at data ranges to determine how to recode
+# from Q3, recoded variables
+# look at data ranges and histograms to determine how to recode
 sapply(memdata, range)
-# TODO plot histograms? 
+hist(memdata$Pasthapp)
+hist(memdata$Responsible)
+hist(memdata$Futurehapp)
+hist(memdata$FTP)
 
-# recoding responsibility into Low and High
+memdata$Type <- factor(memdata$Type)
+type_names <- c("1" = "Free", "2" = "Biased", "3"="Varied")
+
+# recoding Pasthapp into Low, Med, and High
+memdata$pastcat <- findInterval(memdata$Pasthapp, c(0,5,10))
+# recoding Responsible into Low and High
 memdata$rescat <- findInterval(memdata$Responsible, c(0,10))
+# recoding Futurehapp into Low, Med, and High
+memdata$futcat <- findInterval(memdata$Futurehapp, c(0,5,10))
+# recoding FTP into Low and High
+memdata$ftpcat <- findInterval(memdata$FTP, c(0,10))
 ```
 
-#Describe the dataset
-``` {r rel btwn past and future happ by type}
-# run cor
-# plot future against past happ w/in mem groups -- see hw2sols.r
+``` {r rel btwn past and future happ by type - continuous}
+Q6_rs <- vector("list", 3)
+for (i in levels(memdata$Type)) {
+  Q6_rs[[i]] = cor.test(~ Pasthapp + Futurehapp, memdata, Type==i, na.action=na.omit)
+  plot(memdata[memdata$Type==i, c(2,4)], type = 'p', main = type_names[i])
+  lines(lowess(memdata[memdata$Type==i, c(2,4)]), lty = 2)
+}
+print(Q6_rs["1"])
+
+print(Q6_rs["2"])
+
+print(Q6_rs["3"])
+```
+
+``` {r rel btwn past and future happ by type - categorical}
+Q6_rs <- vector("list", 3)
+for (i in levels(memdata$Type)) {
+  Q6_rs[[i]] = cor.test(~ pastcat + futcat, memdata, Type==i, na.action=na.omit)
+  plot(memdata[memdata$Type==i, c(7,9)], type = 'p', main = type_names[i])
+  lines(lowess(memdata[memdata$Type==i, c(7,9)]), lty = 2)
+}
+print(Q6_rs["1"])
+
+print(Q6_rs["2"])
+
+print(Q6_rs["3"])
 ```
 
 Question 7
 ---------------------------------
-# test whether future happiness depends on mem group
+Next, we tested whether _Future Happiness_ depends on _Memory Group_.
+
 ``` {r future hap ~ mem group?}
-#lm()
-#summary()
-#compare to oneway.test() result
-#boxplot to decide whether or not to transform data
+Q7_rs1 <- lm(memdata$Futurehapp ~ memdata$Type)
+summary(Q7_rs1)
+
+Q7_rs2 <- oneway.test(memdata$Futurehapp ~ memdata$Type)
+print(Q7_rs2)
+
+# boxplot to decide whether or not to transform data
+ggplot(memdata, aes(x=Type, y=Futurehapp, fill=Type)) + geom_boxplot() + theme_bw() + guides(fill=FALSE)
+# we see that variances appear to be unequal. We test this using the bartlett test for homogeneity of variance.
+Q7_rs3 <- with(memdata, bartlett.test(Futurehapp ~ Type, na.action=na.omit))
+# we see that the variances are not homogeneous among the three memory groups (p=0.017)
+
+# to meet the assumptions of an ANOVA we should transform our data to have equal variance
+memdata$fut_log <- log(memdata$Futurehapp + 0.5)
+# we run the bartlett test on the transformed data
+Q7_rs4 <- with(memdata, bartlett.test(fut_log ~ Type, na.action=na.omit))
+# we see that the variances are still not homogeneous (p=0.00026)
 ```
-# does future happiness depend on mem group?
-# should you transform data?
+
+Based on both the general linear model and one way ANOVA, it appears as though _Future Happiness_ does not depend on _Memory Group_. The linear model in which _Memory Group_ predicts _Future Happiness_ is better than the one-way ANOVA testing the relationship between the two variables, but neither approach significance.(throw some p values in here)
+
+Based on a boxplot of the data, we could see that variance looked inhomogeneous across _Memory Group_ types. We calculated the homogeneity of variance (bartlett p) We log transformed the data, but this did not decrease the inhomogeneity (bartlett p). 
+
+do some explaining, speculating.
 
 Question 9
 ---------------------------------
@@ -90,6 +152,10 @@ Next, we wanted to establish whether there was a relationship between _Responsib
 Q9_rs_cat <- glm(memdata$complain ~ memdata$rescat, family=binomial)
 
 Q9_rs_cont <- glm(memdata$complain ~ memdata$Responsible, family=binomial)
+
+#plot w/ 2 facets - cat and cont - i haven't done scatter w/ggplot yet huh
+#ggplot(aes(x=rescat, y=complain)) +
+  
 ```
 
 # explain relationship
@@ -101,9 +167,29 @@ To further investigate this relationship, we ran the model using the full contin
 
 Question 10
 ---------------------------------
-### Q10 Part i
+We now looked at a population known to be Normal, with standard deviation, $\sigma$ = 2. The mean, $\mu$, was unknown. We tested the null hypothesis $H_0: \mu = 4$ against the alternative hypothesis $H_1: \mu = 4.4$, using a sample size, _N_ = 96, and $\alpha$ = 0.05.
 
-### Q10 Part ii
+To calculate the power of this test, we first calculated the critical value _c_.
+
+``` {r calc power}
+# calc c
+c <- qnorm(0.05, mean=4.0, sd=2/sqrt(96), lower.tail=F)
+power <- pnorm(c, mean=4.4, sd=2/sqrt(96), lower.tail=F)
+```
+
+The power of this test was ` r round(power,2)`. (add a line about why it was justified to run this as one-tailed -- only 2 possibilities for mu are 4.0 and 4.4)
 
 Question 12
 ---------------------------------
+
+We wanted to compare _cognitive behavioral therapy (CBT)_ and _dialectical behavioral therapy (DBT)_ to assess the success of these two intervention techniques. We tested change scores for each group to see which produced more pronounced changes.
+
+``` {r test CBT v DBT change}
+
+CBT <- c(13,21,9,12,9,2,3,6,4,7)
+DBT <- c(5,1,2,2,6,0,0,4)
+
+Q12_rs <- t.test(CBT, DBT)
+```
+
+It is difficult to interpret our results, given that we only had change scores for the two therapeutic techniques. Because the values were not standardized, we do not know what a change on one measure corresponds to on the other, so although _CBT_ resulted in significantly greater change than _DBT_ based on score alone (t, df, p), this does not mean it was more effective.
